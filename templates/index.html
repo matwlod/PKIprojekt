@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volleyball Matches</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Volleyball Matches</h1>
+        <a href="/new_match" class="btn btn-primary mb-3">Add New Match</a>
+
+        <div class="mb-4">
+            <button class="btn btn-secondary" onclick="filterMatches('PLANNED')">PLANNED</button>
+            <button class="btn btn-warning" onclick="filterMatches('IN_PROGRESS')">IN PROGRESS</button>
+            <button class="btn btn-success" onclick="filterMatches('FINISHED')">FINISHED</button>
+        </div>
+
+        <div id="matches" class="list-group">
+            {% for match in matches %}
+            <div class="list-group-item">
+                <a href="/match/{{ match[0] }}" class="list-group-item-action" style="display: inline;">
+                    {{ match[2] }} vs {{ match[3] }}
+                    <span class="badge badge-secondary">{{ match[6] }}</span>
+                    <span class="badge badge-info">{{ match[1] }}</span>
+                </a>
+
+
+            </div>
+            {% if match[6] == 'FINISHED' %}
+                <!-- COPY button, with event.stopPropagation() to prevent navigation -->
+                <button class="btn btn-sm btn-info float-right" onclick="copyMatchDetails('{{ match[0] }}', event)">COPY</button>
+
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        // Function to request match details and copy to clipboard
+        function copyMatchDetails(matchId, event) {
+            event.stopPropagation();  // Prevent link navigation
+            event.preventDefault();   // Prevent the default action
+
+            fetch(`/copy_match/${matchId}`)
+                .then(response => response.text())
+                .then(data => {
+                    copyToClipboard(data);
+                    alert('Match details copied to clipboard!');
+                })
+                .catch(error => console.error('Error copying match details:', error));
+        }
+
+        // Helper function to copy text to clipboard
+        function copyToClipboard(text) {
+            const tempInput = document.createElement('textarea');
+            document.body.appendChild(tempInput);
+            tempInput.value = text;
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+        }
+
+        function filterMatches(status) {
+            window.location.href = `/?status=${status}`;
+        }
+    </script>
+</body>
+</html>

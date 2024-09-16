@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ team_a_name }} vs {{ team_b_name }}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+
+        <h1 class="mb-4">Match Details</h1>
+        <h2>Status: <span id="status_badge" class="badge badge-info">{{ status }}</span></h2>
+        <h2 id="">{{ team_a_name }} vs {{ team_b_name }} </h2>
+        <div class="mt-4">
+            <a href="/" class="btn btn-secondary mt-3">Back to Main Page</a>
+
+            <h3>Current Time: <span id="current_time"></span></h3>
+<h3>Time Since Match Start: <span id="match_time_passed"></span></h3>
+<h3>Time Since Set Start: <span id="set_time_passed"></span></h3>
+
+            <h3>Sets Score: <span id="sets_score">{{ sets_score }}</span></h3>
+
+            <h3>Current Set: <span id="current_set">{{ current_set[0] }} - {{ current_set[1] }}</span></h3>
+        </div>
+
+        <div class="mt-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="card-title">{{ team_a_name }}</h4>
+                            <button id="team_a_score" class="btn btn-success" onclick="updateScore('team_a', 1)">{{ current_set[0] }}</button>
+                            <button class="btn btn-danger" onclick="updateScore('team_a', -1)">-1</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="card-title">{{ team_b_name }}</h4>
+                            <button id="team_b_score" class="btn btn-success" onclick="updateScore('team_b', 1)">{{ current_set[1] }}</button>
+                            <button class="btn btn-danger" onclick="updateScore('team_b', -1)">-1</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4" id="buttons_container">
+            <button class="btn btn-warning" id="finish_set" onclick="finishSet()">Finish Set</button>
+            <button class="btn btn-warning" onclick="swapTeams()">Swap Teams</button>
+            <button id="finish_button" class="btn btn-danger" style="display:none;" onclick="finishMatch()">Finish Match</button> <!-- Finish button -->
+
+        </div>
+        <button class="btn btn-danger" onclick="removeMatch()">Remove Match</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        function updateScore(team, delta) {
+            socket.emit('update_score', {
+                match_id: {{ match_id }},
+                team: team,
+                delta: delta
+            });
+        }
+        updateScore("team_a",0)
+
+        function swapTeams() {
+            socket.emit('swap_teams', { match_id: {{ match_id }} });
+        }
+
+
+        function removeMatch() {
+            socket.emit('remove_match', { match_id: {{ match_id }} });
+        }
+
+        function refresh() {
+            socket.emit('update_score', {
+                match_id: {{ match_id }},
+                team: "A",
+                delta: 0
+            });
+        }
+
+        function finishSet() {
+            socket.emit('update_score', {
+                match_id: {{ match_id }},
+                team: "A",
+                delta: 4
+            });
+        }
+        // Finish the match
+        function finishMatch() {
+            socket.emit('update_score', {
+                match_id: {{ match_id }},
+                team: "A",
+                delta: 3
+            });
+        }
+        document.querySelector("#buttons_container > button:nth-child(2)").style.display = 'block'
+        if (document.querySelector("#current_set").textContent.split("-")[0]<25&&document.querySelector("#current_set").textContent.split("-")[1]<25){
+        finish_set.style.display = 'none';}
+
+        socket.on('match_removed', function (data) {
+        if (data.match_id === {{ match_id }}) {
+            window.location.href = '/';
+        }
+    });
+        socket.on('match_update', function (data) {
+            if (data.match_id === {{ match_id }}) {
+                document.getElementById('sets_score').textContent = data.result;
+                document.getElementById('status_badge').textContent = data.status;
+                let current_set = JSON.parse(data.detailed_result).slice(-1)[0];
+                document.getElementById('current_set').textContent = current_set[0] + ' - ' + current_set[1];
+
+
+                document.getElementById('team_a_score').textContent = current_set[0];
+                document.getElementById('team_b_score').textContent = current_set[1];
+
+                document.querySelector("body > div > h2:nth-child(3)").textContent = data.teamA +" vs " + data.teamB
+                document.querySelector("body > div > div:nth-child(5) > div > div:nth-child(2) > div > div > h4").textContent= data.teamB
+                document.querySelector("body > div > div:nth-child(5) > div > div:nth-child(1) > div > div > h4").textContent= data.teamA
+
+                const finishButton = document.getElementById('finish_button');
+                if (data.finishable === 1 && data.status !== 'FINISHED') {
+                    finishButton.style.display = 'inline-block';
+                } else {
+                    finishButton.style.display = 'none';
+                }
+                if (data.setFinish === 1 ) {
+                    finish_set.style.display = 'inline-block';
+                } else {
+                    finish_set.style.display = 'none';
+                }
+
+                // Hide all buttons if status is FINISHED
+                const buttonsContainer = document.getElementById('buttons_container');
+                if (data.status === 'FINISHED' || document.querySelector("#status_badge").textContent === 'FINISHED') {
+                    buttonsContainer.style.display = 'none';
+
+                } else {
+                    buttonsContainer.style.display = 'block';
+                    document.querySelector("#buttons_container > button:nth-child(2)").style.display = 'block'
+                }
+
+                if (data.match_id === {{ match_id }}) {
+
+            if (data.startDate) {
+                matchStartTime = parseISODate(data.startDate);
+            }
+            if (data.setDate) {
+                setStartTime = parseISODate(data.setDate);
+            }
+        }
+            }
+        });
+
+
+
+
+
+    let matchStartTime = new Date("{{ startDate }}");
+    let setStartTime = new Date("{{ setDate or startDate }}");
+
+    function isValidDate(date) {
+        return date instanceof Date && !isNaN(date);
+    }
+
+    function parseISODate(isoString) {
+        if (!isoString) return null;
+        const parsedDate = new Date(isoString);
+        return isNaN(parsedDate) ? null : parsedDate;
+    }
+
+    function updateTimers() {
+        const now = new Date();
+
+        document.getElementById('current_time').textContent = formatTime(now);
+
+        if (isValidDate(matchStartTime)) {
+            document.getElementById('match_time_passed').textContent = timeSince(matchStartTime, now);
+        } else {
+            document.getElementById('match_time_passed').textContent = 'N/A';
+        }
+
+        if (isValidDate(setStartTime)) {
+            document.getElementById('set_time_passed').textContent = timeSince(setStartTime, now);
+        } else {
+            document.getElementById('set_time_passed').textContent = 'N/A';
+        }
+    }
+
+    function formatTime(date) {
+        return date.toLocaleTimeString();
+    }
+
+    function timeSince(startTime, currentTime) {
+        const diff = currentTime - startTime;
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    setInterval(updateTimers, 1000);
+
+
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Match</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Create New Match</h1>
+        <form method="POST">
+            <div class="form-group">
+                <label for="team_a_name">Team A:</label>
+                <input type="text" id="team_a_name" name="team_a_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="team_b_name">Team B:</label>
+                <input type="text" id="team_b_name" name="team_b_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="match_date">Match Date (ISO format):</label>
+                <input type="datetime-local" id="match_date" name="match_date" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Match</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Set the minimum date to today's date for the date input
+        document.addEventListener('DOMContentLoaded', function () {
+            const dateInput = document.getElementById('match_date');
+            const today = new Date().toISOString().slice(0, 16);  // Get current date and time in ISO format, slice for datetime-local
+
+            // Set the minimum attribute to today (in ISO format for input type="datetime-local")
+            dateInput.min = today;
+        });
+    </script>
+</body>
+</html>
